@@ -14,7 +14,7 @@ void startGame();
 
 SceneID scene1, scene2;
 ObjectID picture[15], position[15], startButton, restartButton, endButton;
-char pictureName[14][100], pictureNumber[14][100];
+char pictureName[15][100], pictureNumber[15][100];
 int positionX[15], positionY[15], pictureX[15], pictureY[15];
 bool existence[15];
 
@@ -33,7 +33,7 @@ int main()
 	restartButton = createObject("images/restart.png", scene2, 10, 20);
 	endButton = createObject("images/end.png", scene2, 10, 60);
 
-	for (int i = 0; i < 14; i++) {
+	for (int i = 0; i < 15; i++) {
 		strcpy(pictureName[i], "images/");
 		sprintf(pictureNumber[i], "%d", i);
 		strcat(pictureName[i], pictureNumber[i]);
@@ -44,66 +44,21 @@ int main()
 		if (i < 5) {
 			pictureX[i] = positionX[i] = 138 + 200 * i;
 			pictureY[i] = positionY[i] = 430;
-			position[i] = picture[i];
 		}
 		else if (i >= 5 && i < 10) {
 			pictureX[i] = positionX[i] = 138 + 200 * (i - 5);
 			pictureY[i] = positionY[i] = 230;
-			position[i] = picture[i];
 		}
 		else if (i >= 10) {
 			pictureX[i] = positionX[i] = 138 + 200 * (i - 10);
 			pictureY[i] = positionY[i] = 30;
-			position[i] = picture[i];
 		}
 		picture[i] = createObject(pictureName[i], scene2, positionX[i], positionY[i]);
-		picture[14] = NULL;
 		position[i] = picture[i];
 	}
-	
+	position[14] = NULL;
 	
 	startGame(scene1);
-}
-
-//void checkPosition(ObjectID object, int x, int y)
-//{
-//	for (int i = 0; i < 15; i++) {
-//		if (i < 5 && x == 138 + 200 * i && y == 430) {
-//			position[i] = object;
-//		}
-//		else if (i >= 5 && i < 10 && x == 138 + 200 * (i - 5) && y == 230) {
-//			position[i] = object;
-//		}
-//		else if (i >= 10 && x == 138 + 200 * (i - 10) && y == 30) {
-//			position[i] = object;
-//		}
-//	}
-//}
-
-ObjectID createObject(const char* image, SceneID scene, int x, int y)
-{
-	ObjectID object = createObject(image);
-	locateObject(object, scene, x, y);
-	showObject(object);
-
-	return object;
-}
-
-void mouseCallback(ObjectID object, int x, int y, MouseAction action)
-{
-	if (object == startButton || object == restartButton) {
-		startGame();
-	}
-	else if (object == endButton) {
-		endGame();
-	}
-
-	for (int i = 0; i < 14; i++) {
-		if (object == picture[i]) {
-			movePicture(object);
-		}
-	}
-	
 }
 
 void movePicture(ObjectID object)
@@ -156,14 +111,41 @@ void movePicture(ObjectID object)
 
 void changePosition(ObjectID object, int num1, int num2)
 {
-	if (object == picture[num1]) {
-		if (position[num2] == NULL) {
-			pictureX[num1] = positionX[num2];
-			pictureY[num1] = positionY[num2];
-			locateObject(object, scene2, pictureX[num1], picture[num2]);
+	if (position[num1] == NULL) {
+		if (object == position[num2]) {
+			locateObject(object, scene2, positionX[num1], positionY[num1]);
+			position[num1] = picture[num2];
+			position[num2] = NULL;
 		}
 	}
 }
+
+ObjectID createObject(const char* image, SceneID scene, int x, int y)
+{
+	ObjectID object = createObject(image);
+	locateObject(object, scene, x, y);
+	showObject(object);
+
+	return object;
+}
+
+void mouseCallback(ObjectID object, int x, int y, MouseAction action)
+{
+	if (object == startButton || object == restartButton) {
+		startGame();
+	}
+	else if (object == endButton) {
+		endGame();
+	}
+
+	for (int i = 0; i < 15; i++) {
+		if (object == picture[i]) {
+			movePicture(object);
+		}
+	}
+	
+}
+
 
 void startGame()
 {
