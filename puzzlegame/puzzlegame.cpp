@@ -1,22 +1,130 @@
 ﻿#include <bangtal.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
-#pragma warning(disable : 4996)
 
-ObjectID createObject(const char* image, SceneID scene, int x, int y);
-void changePosition(ObjectID object, int NULLNum, int objectNum);
-void movePicture(ObjectID object);
-void mouseCallback(ObjectID object, int x, int y, MouseAction action);
-void startGame();
+SceneID scene;
+ObjectID start, restart, piece[15], board[15];
 
+TimerID timer_mix, timer1, timer2;
+int rand_count;
 
-SceneID scene1, scene2;
-ObjectID picture[15], position[15], startButton, restartButton, endButton;
-char pictureName[15][100], pictureNumber[15][100];
-int positionX[15], positionY[15], pictureX[15], pictureY[15];
-bool existence[15];
+int pieceX[15] = { 138, 338, 538, 738, 938, 138, 338, 538, 738, 938, 138, 338, 538, 738, 938 };
+int pieceY[15] = { 430, 430, 430, 430, 430, 230, 230, 230, 230, 230, 30, 30, 30, 30, 30 };
+int blank;
+int recorded_time;
+
+const char* image_name[15] = {
+	"images/0.png",
+	"images/1.png",
+	"images/2.png",
+	"images/3.png",
+	"images/4.png",
+	"images/5.png",
+	"images/6.png",
+	"images/7.png",
+	"images/8.png",
+	"images/9.png",
+	"images/10.png",
+	"images/11.png",
+	"images/12.png",
+	"images/13.png",
+	"images/14.png",
+};
+
+int piece_index(ObjectID object)
+{
+	for (int i = 0; i < 15; i++) {
+		if (piece[i] == object) return i;
+	}
+	return -1;
+}
+
+void piece_move(int index)
+{
+	ObjectID temp = piece[blank];
+	piece[blank] = piece[index];
+	piece[index] = temp;
+
+	locateObject(piece[blank], scene, pieceX[blank], pieceY[blank]);
+	locateObject(piece[index], scene, pieceX[index], pieceY[index]);
+
+	blank = index;
+}
+
+bool movable(int index)
+{
+	if (blank < 0 || blank > 14) return false;
+	if (blank - 1 == index && blank % 5 != 0) return true;
+	if (blank + 1 == index && blank % 5 != 4) return true;
+	if (blank - 5 == index && blank / 5 != 0) return true;
+	if (blank + 5 == index && blank / 5 != 2) return true;
+
+	return false;
+}
+
+void piece_rand()
+{
+	int index;
+
+	do {
+		switch (rand() % 4) {
+		case 0: index = blank - 1; break;
+		case 1: index = blank + 1; break;
+		case 2: index = blank - 5; break;
+		case 3: index = blank + 5; break;
+		}
+	} while (!movable(index));
+		piece_move(index);
+}
+
+bool cleared() {
+	for (int i = 0; i < 16; i++) {
+		if (board[i] != piece[i]) return false;
+	}
+
+	return true;
+}
+
+void mouseCallback(ObjectID object, int X, int Y, MouseAction action)
+{
+	if (object == start || object == restart) {
+		rand_count = 200;
+		startTimer(timer_mix);
+		hideObject(start);
+		startTimer(timer2);
+	}
+	else {
+		int index = piece_index(object);
+		if (movable(index) == true) {
+			piece_move(index);
+
+			if (cleared()) {
+				showObject(piece[blank]);
+				showObject(restart);		
+				stopTimer(timer2);
+			}
+		}
+	}
+	
+	
+}
+
+void timerCallback(TimerID timer) 
+{
+	rand_count--;
+	if (timer == timer_mix && rand_count > 0) {
+		piece_rand();
+
+		setTimer(timer_mix, 0.05f);
+		startTimer(timer_mix);
+	}
+
+	if (timer == timer2) {
+		increaseTimer(timer1, 1.0);
+		setTimer(timer2, 1.f);
+		startTimer(timer2);
+	}
+}
 
 int main()
 {
@@ -24,133 +132,42 @@ int main()
 	setGameOption(GameOption::GAME_OPTION_INVENTORY_BUTTON, false);
 	setGameOption(GameOption::GAME_OPTION_MESSAGE_BOX_BUTTON, false);
 
+	srand(time(NULL));
+
 	setMouseCallback(mouseCallback);
+	setTimerCallback(timerCallback);
 
-	scene1 = createScene("starting", "images/original.png");
-	scene2 = createScene("background", "images/background.png");
+	scene = createScene("배경", "images/background.png");
 
-	startButton = createObject("images/start.png", scene1, 590, 70);
-	restartButton = createObject("images/restart.png", scene2, 10, 20);
-	endButton = createObject("images/end.png", scene2, 10, 60);
 
 	for (int i = 0; i < 15; i++) {
-		strcpy(pictureName[i], "images/");
-		sprintf(pictureNumber[i], "%d", i);
-		strcat(pictureName[i], pictureNumber[i]);
-		strcat(pictureName[i], ".png");
+		piece[i] = createObject(image_name[i]);
+		board[i] = piece[i];
+		locateObject(piece[i], scene, pieceX[i], pieceY[i]);
+		showObject(piece[i]);
 	}
-		
-	for (int i = 0; i < 15; i++) {
-		if (i < 5) {
-			pictureX[i] = positionX[i] = 138 + 200 * i;
-			pictureY[i] = positionY[i] = 430;
-		}
-		else if (i >= 5 && i < 10) {
-			pictureX[i] = positionX[i] = 138 + 200 * (i - 5);
-			pictureY[i] = positionY[i] = 230;
-		}
-		else if (i >= 10) {
-			pictureX[i] = positionX[i] = 138 + 200 * (i - 10);
-			pictureY[i] = positionY[i] = 30;
-		}
-		picture[i] = createObject(pictureName[i], scene2, positionX[i], positionY[i]);
-		position[i] = picture[i];
-	}
-	position[14] = NULL;
+
+	blank = 14;
+	hideObject(piece[blank]);
+
+	start = createObject("images/start.png");
+	locateObject(start, scene, 610, 100);
+	showObject(start);
+
+	restart = createObject("images/restart.png");
+	locateObject(restart, scene, 610, 100);
+
+	timer_mix = createTimer(1.0f);
 	
-	startGame(scene1);
-}
+	timer1 = createTimer(0.f);
+	showTimer(timer1);
 
-void movePicture(ObjectID object)
-{
-	changePosition(object, 0, 1);
-	changePosition(object, 0, 5);
-	changePosition(object, 1, 0);
-	changePosition(object, 1, 2);
-	changePosition(object, 1, 6);
-	changePosition(object, 2, 1);
-	changePosition(object, 2, 3);
-	changePosition(object, 2, 7);
-	changePosition(object, 3, 2);
-	changePosition(object, 3, 4);
-	changePosition(object, 3, 8);
-	changePosition(object, 4, 3);
-	changePosition(object, 4, 9);
-	changePosition(object, 5, 0);
-	changePosition(object, 5, 6);
-	changePosition(object, 5, 10);
-	changePosition(object, 6, 1);
-	changePosition(object, 6, 5);
-	changePosition(object, 6, 7);
-	changePosition(object, 6, 11);
-	changePosition(object, 7, 2);
-	changePosition(object, 7, 6);
-	changePosition(object, 7, 8);
-	changePosition(object, 7, 12);
-	changePosition(object, 8, 3);
-	changePosition(object, 8, 7);
-	changePosition(object, 8, 9);
-	changePosition(object, 8, 13);
-	changePosition(object, 9, 4);
-	changePosition(object, 9, 8);
-	changePosition(object, 9, 14);
-	changePosition(object, 10, 5);
-	changePosition(object, 10, 11);
-	changePosition(object, 11, 6);
-	changePosition(object, 11, 10);
-	changePosition(object, 11, 12);
-	changePosition(object, 12, 7);
-	changePosition(object, 12, 11);
-	changePosition(object, 12, 13);
-	changePosition(object, 13, 8);
-	changePosition(object, 13, 12);
-	changePosition(object, 13, 14);
-	changePosition(object, 14, 9);
-	changePosition(object, 14, 13);
-}
-
-void changePosition(ObjectID object, int num1, int num2)
-{
-	if (position[num1] == NULL) {
-		if (object == position[num2]) {
-			locateObject(object, scene2, positionX[num1], positionY[num1]);
-			position[num1] = picture[num2];
-			position[num2] = NULL;
-		}
-	}
-}
-
-ObjectID createObject(const char* image, SceneID scene, int x, int y)
-{
-	ObjectID object = createObject(image);
-	locateObject(object, scene, x, y);
-	showObject(object);
-
-	return object;
-}
-
-void mouseCallback(ObjectID object, int x, int y, MouseAction action)
-{
-	if (object == startButton || object == restartButton) {
-		startGame();
-	}
-	else if (object == endButton) {
-		endGame();
-	}
-
-	for (int i = 0; i < 15; i++) {
-		if (object == picture[i]) {
-			movePicture(object);
-		}
-	}
+	timer2 = createTimer(1.0f);
 	
+	startGame(scene);
+
+	return 0;
 }
 
-
-void startGame()
-{
-	enterScene(scene2);
-	
-}
 
 
